@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CRUD Operations</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="script.js"></script>
+</head>
+<body>
+    <h2>CRUD Operations</h2>
+    
+    <form id="insert-form">
+        <h3>Add Record</h3>
+        <label for="name">Name:</label>
+        <input type="text" id="name" required>
+        <br>
+        <label for="email">Email:</label>
+        <input type="email" id="email" required>
+        <br>
+        <button type="submit">Submit</button>
+    </form>
+
+    <div id="loader" style="display: none;">Loading...</div>
+
+    <div id="message"></div>
+
+    <h3>Records</h3>
+    <table id="records-table" border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    
+    <script>
+        $(document).ready(function() {
+            loadRecords();
+
+            function loadRecords() {
+                $.ajax({
+                    url: 'api.php',
+                    method: 'POST',
+                    dataType: 'json',
+                    data: { action: 'get_records' },
+                    beforeSend: function() {
+                        $('#loader').show();
+                    },
+                    success: function(response) {
+                        $('#loader').hide();
+
+                        if (response.error) {
+                            $('#message').text(response.message);
+                        } else {
+                            $('#message').text('');
+
+                            if (response.records.length === 0) {
+                                $('#records-table tbody').html('<tr><td colspan="4">No records available</td></tr>');
+                            } else {
+                                var rows = '';
+                                $.each(response.records, function(index, record) {
+                                    rows += '<tr>';
+                                    rows += '<td>' + record.id + '</td>';
+                                    rows += '<td>' + record.name + '</td>';
+                                    rows += '<td>' + record.email + '</td>';
+                                    rows += '<td><a href="#" class="edit-btn" data-id="' + record.id + '">Edit</a> | <a href="#" class="delete-btn" data-id="' + record.id + '">Delete</a></td>';
+                                    rows += '</tr>';
+                                });
+                                $('#records-table tbody').html(rows);
+                            }
+                        }
+                    },
+                    error: function() {
+                        $('#loader').hide();
+                        $('#message').text('Error occurred while loading records.');
+                    }
+                });
+            }
+
+            $('#insert-form').submit(function(e) {
+                e.preventDefault();
+
+                var name = $('#name').val();
+                var email = $('#email').val();
+
+                $.ajax({
+                    url: 'api.php',
+                    method: 'POST',
+                    dataType: 'json',
+                    data: {
+                        action: 'insert_record',
+                        name: name,
+                        email: email
+                    },
+                    beforeSend: function() {
+                        $('#loader').show();
+                    },
+                    success: function(response) {
+                        $('#loader').hide();
+
+                        if (response.error) {
+                            $('#message').text(response.message);
+                        } else {
+                            $('#message').text('Record inserted successfully.');
+
+                            $('#name').val('');
+                            $('#email').val('');
+
+                            loadRecords();
+                        }
+                    },
+                    error: function() {
+                        $('#loader').hide();
+                        $('#message').text('Error occurred while inserting the record.');
+                    }
+                });
+            });
+
+            $('#records-table').on('click', '.edit-btn', function(e) {
+                e.preventDefault();
+
+                var id = $(this).data('id');
+                var name = prompt('Enter the updated name:');
+                var email = prompt('Enter the updated email:');
+
+                if (name !== null && email !== null) {
+                    $.ajax({
+                        url: 'api.php',
+                        method: 'POST',
+                        dataType: 'json',
+                        data: {
+                            action: 'update_record',
+                            id: id,
+                            name: name,
+                            email: email
+                        },
+                        beforeSend: function() {
+                            $('#loader').show();
+                        },
+                        success: function(response) {
+                            $('#loader').hide();
+
+                            if (response.error) {
+                                $('#message').text(response.message);
+                            } else {
+                                $('#message').text('Record updated successfully.');
+
+                                loadRecords();
+                            }
+                        },
+                        error: function() {
+                            $('#loader').hide();
+                            $('#message').text('Error occurred while updating the record.');
+                        }
+                    });
+                }
+            });
+
+            $('#records-table').on('click', '.delete-btn', function(e) {
+                e.preventDefault();
+
+                var id = $(this).data('id');
+                var confirmDelete = confirm('Are you sure you want to delete this record?');
+
+                if (confirmDelete) {
+                    $.ajax({
+                        url: 'api.php',
+                        method: 'POST',
+                        dataType: 'json',
+                        data: {
+                            action: 'delete_record',
+                            id: id
+                        },
+                        beforeSend: function() {
+                            $('#loader').show();
+                        },
+                        success: function(response) {
+                            $('#loader').hide();
+
+                            if (response.error) {
+                                $('#message').text(response.message);
+                            } else {
+                                $('#message').text('Record deleted successfully.');
+
+                                loadRecords();
+                            }
+                        },
+                        error: function() {
+                            $('#loader').hide();
+                            $('#message').text('Error occurred while deleting the record.');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
